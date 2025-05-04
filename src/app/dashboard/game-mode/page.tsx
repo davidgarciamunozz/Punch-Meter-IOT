@@ -1,10 +1,6 @@
-import GameMode from "@/components/dashboard/game-mode";
+import GameMode from "../../../components/dashboard/game-mode";
 
-export default function Page() {
-    return (
-      <>
-      <GameMode/>
-      </>
-    );
-  }
+export default function GameModePage() {
+  return <GameMode />;
+}
   

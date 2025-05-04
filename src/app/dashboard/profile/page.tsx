@@ -1,10 +1,6 @@
-import Profile from "@/components/dashboard/profile";
+import Profile from "../../../components/dashboard/profile";
 
-export default function Page() {
-    return (
-      <>
-      <Profile/>
-      </>
-    );
-  }
+export default function ProfilePage() {
+  return <Profile />;
+}
   

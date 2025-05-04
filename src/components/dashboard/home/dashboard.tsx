@@ -1,15 +1,48 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Menu, User, Trophy, GamepadIcon, Home, LogOut, QrCode } from "lucide-react"
+import { useAuth } from "../../../context/AuthContext"
+import { useRouter } from "next/navigation"
 
 export default function DashboardHome() {
+  const { user, logout, isLoading } = useAuth();
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    // Redirigir a login si el usuario no está autenticado
+    if (mounted && !isLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, isLoading, router, mounted]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
+  }
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
+  if (!mounted || isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-black">
+        <p className="text-xl text-white">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Will redirect in the useEffect
   }
 
   return (
@@ -111,10 +144,16 @@ export default function DashboardHome() {
               <QrCode className="mr-3 h-5 w-5" />
               <span>QR Code</span>
             </Link>
-            <Link href="/" className="flex items-center py-3 text-red-500" onClick={() => setIsMenuOpen(false)}>
+            <button 
+              className="flex items-center py-3 text-red-500" 
+              onClick={() => {
+                setIsMenuOpen(false);
+                handleLogout();
+              }}
+            >
               <LogOut className="mr-3 h-5 w-5" />
               <span>Logout</span>
-            </Link>
+            </button>
           </div>
         </div>
       )}
@@ -123,12 +162,11 @@ export default function DashboardHome() {
       <div className="relative z-10 px-4 py-6 md:px-8">
         {/* User Info */}
         <div className="mb-8">
-          <p className="text-sm text-gray-300">Email</p>
-          <p className="text-sm text-gray-300">Phone number</p>
-          <h1 className="border-b border-gray-700 pb-2 text-3xl font-bold text-yellow-500">USERNAME</h1>
+          <p className="text-sm text-gray-300">Email: {user.email}</p>
+          <h1 className="border-b border-gray-700 pb-2 text-3xl font-bold text-yellow-500">{user.username}</h1>
         </div>
 
-        {/* Punch History */}
+        {/* Punch History - Mantener como dummy data */}
         <div className="mb-8">
           <h2 className="mb-4 text-xl text-white">Punch history</h2>
 

@@ -1,10 +1,6 @@
-import QrId from "@/components/dashboard/qr-id";
+import QrId from "../../../components/dashboard/qr-id";
 
-export default function Page() {
-    return (
-      <>
-      <QrId/>
-      </>
-    );
-  }
+export default function QrIdPage() {
+  return <QrId />;
+}
   

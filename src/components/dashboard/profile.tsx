@@ -1,14 +1,54 @@
+"use client"
+
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Edit } from "lucide-react"
+import { useAuth } from "../../context/AuthContext"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export default function Profile() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  // Datos ficticios para las estadísticas
+  const dummyStats = {
+    totalGames: 12,
+    bestPunch: "500N",
+    averageStrength: "450N",
+    leaderboardPosition: "#5"
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    // Redirigir a login si el usuario no está autenticado
+    if (mounted && !isLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, isLoading, router, mounted]);
+
+  if (!mounted || isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-black">
+        <p className="text-xl text-white">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Will redirect in the useEffect
+  }
+
   return (
     <main className="relative min-h-screen w-full bg-black">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/boxer-background.jpg"
+          src="/media/boxing-background.jpg"
           alt="Boxer background"
           fill
           className="object-cover object-center brightness-50"
@@ -37,17 +77,12 @@ export default function Profile() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm text-gray-400">Username</label>
-              <p className="text-lg font-bold text-yellow-500">USERNAME</p>
+              <p className="text-lg font-bold text-yellow-500">{user.username}</p>
             </div>
 
             <div>
               <label className="block text-sm text-gray-400">Email</label>
-              <p className="text-white">user@example.com</p>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-400">Phone Number</label>
-              <p className="text-white">+1 (555) 123-4567</p>
+              <p className="text-white">{user.email}</p>
             </div>
           </div>
         </div>
@@ -58,22 +93,22 @@ export default function Profile() {
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-gray-300">Total Games</span>
-              <span className="font-bold text-white">12</span>
+              <span className="font-bold text-white">{dummyStats.totalGames}</span>
             </div>
 
             <div className="flex justify-between">
               <span className="text-gray-300">Best Punch</span>
-              <span className="font-bold text-yellow-500">500N</span>
+              <span className="font-bold text-yellow-500">{dummyStats.bestPunch}</span>
             </div>
 
             <div className="flex justify-between">
               <span className="text-gray-300">Average Strength</span>
-              <span className="font-bold text-white">450N</span>
+              <span className="font-bold text-white">{dummyStats.averageStrength}</span>
             </div>
 
             <div className="flex justify-between">
               <span className="text-gray-300">Leaderboard Position</span>
-              <span className="font-bold text-white">#5</span>
+              <span className="font-bold text-white">{dummyStats.leaderboardPosition}</span>
             </div>
           </div>
         </div>
