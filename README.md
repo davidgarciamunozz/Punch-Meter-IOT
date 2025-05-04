@@ -40,7 +40,7 @@ Routes under `/dashboard/*`:
 
 - **Dashboard Home** (`/dashboard`): Main user interface with navigation
 - **Profile** (`/dashboard/profile`): User statistics and account information
-- **Game Mode Selection** (`/dashboard/game-mode`): Choose game difficulty/type
+- **Game Mode** (`/dashboard/game-mode`): Individual mode with 3 punches to test strength
 - **Leaderboard** (`/dashboard/leaderboard`): View rankings among all users
 - **QR Code** (`/dashboard/qr-id`): Display user's unique QR code for scanning by admin
 
@@ -48,7 +48,7 @@ Features:
 - Personal performance tracking
 - Historical punch data visualization
 - Profile management
-- Game mode selection
+- Individual gameplay (3 punches)
 - Social interaction through leaderboards
 
 ### 2. Muppi Client (Public Display)

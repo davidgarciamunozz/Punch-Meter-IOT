@@ -33,7 +33,7 @@ export default function Landing() {
             </li>
             <li className="flex items-start">
               <span className="mr-2 mt-1.5 h-2 w-2 rounded-full bg-white"></span>
-              <span>Choose your mode: Individual (3 punches) or Multiplayer.</span>
+              <span>Individual mode: You&apos;ll have 3 punches to test your strength.</span>
             </li>
             <li className="flex items-start">
               <span className="mr-2 mt-1.5 h-2 w-2 rounded-full bg-white"></span>
