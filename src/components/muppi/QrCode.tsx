@@ -1,96 +1,62 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
 
 export default function MuppiQrCode() {
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  
-  // Actualizar la fecha cada minuto
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentDate(new Date());
-    }, 60000);
-    
-    return () => clearInterval(timer);
-  }, []);
-
-  // Formatea la fecha para mostrar
-  const formattedDate = new Intl.DateTimeFormat('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(currentDate);
-
   return (
     <main className="relative min-h-screen w-full overflow-hidden bg-black">
-      {/* Background Image */}
+      {/* Background Image con menor opacidad para que destaque más el QR */}
       <div className="absolute inset-0 z-0">
         <Image
           src="/media/boxing-background.jpg"
           alt="Boxing background"
           fill
-          className="object-cover object-center brightness-50"
+          className="object-cover object-center brightness-30 opacity-40"
           priority
         />
       </div>
 
-      <div className="relative z-10 h-full w-full">
-        {/* Header with Logo */}
-        <div className="mb-6 flex items-center justify-between bg-black/70 p-4 backdrop-blur-sm">
-          <div className="flex items-center">
-            <Image
-              src="/media/EverlastLogo.png"
-              alt="Everlast Logo"
-              width={180}
-              height={70}
-              className="mr-4"
-            />
-          </div>
-          
-          <Link 
-            href="/muppi" 
-            className="flex items-center text-white hover:text-yellow-500"
-          >
-            <ArrowLeft className="mr-2" />
-            <span>Back to Leaderboard</span>
-          </Link>
+      <div className="relative z-10 flex h-screen w-full flex-col items-center">
+        {/* Logo Everlast en la parte superior */}
+        <div className="mt-12 w-[180px]">
+          <Image
+            src="/media/EverlastLogo.png"
+            alt="Everlast Logo"
+            width={180}
+            height={70}
+            className="w-full"
+            priority
+          />
         </div>
-
-        {/* QR Code Section */}
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="mb-6 text-3xl font-bold text-white">Scan this code to access Punch Meter</h2>
-          <p className="mb-8 text-xl text-gray-300">Use your phone&apos;s camera to scan the QR code below</p>
+        
+        {/* Título y QR */}
+        <div className="flex flex-1 flex-col items-center justify-center px-4 text-center">
+          <h2 className="mb-8 text-3xl font-bold leading-tight text-white italic">
+            Scan me and try your<br />strength
+          </h2>
           
-          <div className="mx-auto mb-8 flex w-72 flex-col items-center justify-center rounded-lg border-4 border-yellow-500 bg-white p-4 md:w-80 lg:w-96">
-            {/* Ejemplo de QR Code usando una imagen */}
-            <div className="relative h-64 w-64 md:h-72 md:w-72 lg:h-80 lg:w-80">
+          {/* QR Code */}
+          <div className="mx-auto mb-8 bg-white p-5">
+            <div className="relative h-[280px] w-[280px]">
               <Image
                 src="/media/qr-placeholder.png"
-                alt="QR Code to access Punch Meter"
+                alt="QR Code"
                 fill
                 className="object-contain"
               />
             </div>
           </div>
-          
-          <p className="text-lg text-white">
-            Or visit <span className="font-bold text-yellow-500">www.punchmeter.com</span>
-          </p>
-          
-          <div className="mt-8">
-            <p className="text-lg text-gray-300">{formattedDate}</p>
-          </div>
         </div>
 
-        {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-4 text-center text-gray-400 backdrop-blur-sm">
-          <p>Track your punch strength and compete with others!</p>
+        {/* Botón para volver al leaderboard */}
+        <div className="mb-8">
+          <Link 
+            href="/muppi" 
+            className="rounded-full border-2 border-yellow-500 bg-black/50 px-6 py-3 font-bold text-white hover:bg-yellow-500 hover:text-black"
+          >
+            Back to Leaderboard
+          </Link>
         </div>
       </div>
     </main>
