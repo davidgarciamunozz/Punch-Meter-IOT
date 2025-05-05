@@ -5,11 +5,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, Trophy } from "lucide-react";
 import CountdownTimer from "./CountdownTimer";
+import PrizeScreen from "./PrizeScreen";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
 
 // Estados posibles del juego
-type GameState = "preparing" | "countdown" | "punching" | "recording" | "result";
+type GameState = "preparing" | "countdown" | "punching" | "recording" | "result" | "complete";
+
+// Umbral para obtener un premio
+const PRIZE_THRESHOLD = 900;
 
 export default function GameCountdown() {
   const { user, isLoading } = useAuth();
@@ -25,6 +29,8 @@ export default function GameCountdown() {
   const [punchHistory, setPunchHistory] = useState<number[]>([]);
   // Contador para preparación (3, 2, 1...)
   const [prepCount, setPrepCount] = useState<number>(3);
+  // Mostrar pantalla de premio
+  const [showPrize, setShowPrize] = useState(false);
   // Contador de montado para SSR
   const [mounted, setMounted] = useState(false);
 
@@ -56,10 +62,15 @@ export default function GameCountdown() {
     return () => clearTimeout(timer);
   }, [prepCount, gameState]);
 
+  // Comprobar si el usuario es elegible para premio
+  const isEligibleForPrize = (): boolean => {
+    return punchHistory.some(punch => punch >= PRIZE_THRESHOLD);
+  };
+
   // Simular el golpe (esto se reemplazaría por el sensor real)
   const simulatePunch = () => {
-    // Simulamos un golpe entre 500 y 1000 unidades de fuerza
-    const punchStrength = Math.floor(Math.random() * 500) + 500;
+    // Simulamos un golpe entre 400 y 1100 unidades de fuerza para dar posibilidad de premio
+    const punchStrength = Math.floor(Math.random() * 700) + 400;
     
     // Guardar el golpe actual
     setCurrentPunchStrength(punchStrength);
@@ -81,14 +92,26 @@ export default function GameCountdown() {
   // Manejar el siguiente golpe o finalizar
   const handleNextAction = () => {
     if (punchCount >= 3) {
-      // Redirigir al leaderboard
-      router.push("/dashboard/leaderboard");
+      // Comprobar si el usuario es elegible para un premio
+      if (isEligibleForPrize()) {
+        setShowPrize(true);
+        setGameState("complete");
+      } else {
+        // Redirigir al leaderboard si no hay premio
+        router.push("/dashboard/leaderboard");
+      }
     } else {
       // Reiniciar para el siguiente golpe
       setCurrentPunchStrength(null);
       setPrepCount(3);
       setGameState("preparing");
     }
+  };
+
+  // Manejar el cierre de la pantalla de premio
+  const handlePrizeExit = () => {
+    setShowPrize(false);
+    router.push("/dashboard/leaderboard");
   };
 
   // Mostrar pantalla de carga durante SSR
@@ -101,108 +124,119 @@ export default function GameCountdown() {
   }
 
   return (
-    <main className="relative min-h-screen w-full bg-black">
-      {/* Botón de regreso (visible solo en preparación) */}
-      {gameState === "preparing" && prepCount === 3 && (
-        <div className="relative z-10 p-4">
-          <Link href="/dashboard/game-mode" className="flex w-fit items-center text-white hover:text-yellow-500">
-            <ArrowLeft className="mr-2 h-5 w-5" />
-            Back to Game Mode
-          </Link>
-        </div>
-      )}
+    <>
+      <main className="relative min-h-screen w-full bg-black">
+        {/* Botón de regreso (visible solo en preparación) */}
+        {gameState === "preparing" && prepCount === 3 && (
+          <div className="relative z-10 p-4">
+            <Link href="/dashboard/game-mode" className="flex w-fit items-center text-white hover:text-yellow-500">
+              <ArrowLeft className="mr-2 h-5 w-5" />
+              Back to Game Mode
+            </Link>
+          </div>
+        )}
 
-      <div className="flex min-h-screen flex-col items-center justify-center px-4 py-6">
-        {/* Logo superior */}
-        <div className="mb-8 w-full max-w-[160px]">
-          <Image src="/media/EverlastLogo.png" alt="Everlast Logo" width={160} height={60} className="w-full" />
-        </div>
-
-        {/* Contenido principal */}
-        <div className="w-full max-w-md rounded-xl border border-gray-700 bg-black/40 p-6 backdrop-blur-sm">
-          {/* Contador de golpes */}
-          <div className="mb-4 flex justify-between">
-            <span className="text-white">Punch: {punchCount + 1}/3</span>
-            <span className="text-yellow-500 font-bold">
-              {punchHistory.length > 0 && `Best: ${Math.max(...punchHistory)}`}
-            </span>
+        <div className="flex min-h-screen flex-col items-center justify-center px-4 py-6">
+          {/* Logo superior */}
+          <div className="mb-8 w-full max-w-[160px]">
+            <Image src="/media/EverlastLogo.png" alt="Everlast Logo" width={160} height={60} className="w-full" />
           </div>
 
-          {/* Estado: Preparación */}
-          {gameState === "preparing" && (
-            <div className="flex flex-col items-center">
-              <h2 className="mb-8 text-2xl font-bold text-white">Get Ready!</h2>
-              <div className="flex h-32 w-32 items-center justify-center rounded-full bg-gray-800 text-5xl font-bold text-white">
-                {prepCount}
-              </div>
-              <p className="mt-8 text-center text-lg text-gray-300">
-                Prepare to punch in...
-              </p>
+          {/* Contenido principal */}
+          <div className="w-full max-w-md rounded-xl border border-gray-700 bg-black/40 p-6 backdrop-blur-sm">
+            {/* Contador de golpes */}
+            <div className="mb-4 flex justify-between">
+              <span className="text-white">Punch: {punchCount + 1}/3</span>
+              <span className="text-yellow-500 font-bold">
+                {punchHistory.length > 0 && `Best: ${Math.max(...punchHistory)}`}
+              </span>
             </div>
-          )}
 
-          {/* Estado: Cuenta regresiva de 15 segundos */}
-          {gameState === "countdown" && (
-            <div className="flex flex-col items-center">
-              <h2 className="mb-6 text-2xl font-bold text-white">Punch Now!</h2>
-              <CountdownTimer
-                seconds={15}
-                onComplete={() => setGameState("punching")}
-                size={220}
-              />
-              <p className="mt-6 text-center text-lg text-gray-300">
-                Hit the sensor as hard as you can!
-              </p>
-              {/* Botón para simular el golpe (en producción, esto sería el sensor) */}
-              <button
-                onClick={simulatePunch}
-                className="mt-6 rounded-full bg-yellow-500 px-8 py-3 text-lg font-bold text-black hover:bg-yellow-400"
-              >
-                Simular Golpe
-              </button>
-            </div>
-          )}
-
-          {/* Estado: Grabando el golpe */}
-          {gameState === "recording" && (
-            <div className="flex flex-col items-center">
-              <h2 className="mb-8 text-2xl font-bold text-white">Recording...</h2>
-              <div className="h-40 w-40 animate-pulse rounded-full bg-red-500 flex items-center justify-center">
-                <span className="text-2xl font-bold text-white">Recording</span>
+            {/* Estado: Preparación */}
+            {gameState === "preparing" && (
+              <div className="flex flex-col items-center">
+                <h2 className="mb-8 text-2xl font-bold text-white">Get Ready!</h2>
+                <div className="flex h-32 w-32 items-center justify-center rounded-full bg-gray-800 text-5xl font-bold text-white">
+                  {prepCount}
+                </div>
+                <p className="mt-8 text-center text-lg text-gray-300">
+                  Prepare to punch in...
+                </p>
               </div>
-              <p className="mt-8 text-center text-lg text-gray-300">
-                Processing your punch...
-              </p>
-            </div>
-          )}
+            )}
 
-          {/* Estado: Resultado */}
-          {gameState === "result" && currentPunchStrength && (
-            <div className="flex flex-col items-center">
-              <h2 className="mb-6 text-2xl font-bold text-white">Punch Result!</h2>
-              
-              <div className="mb-6 flex h-40 w-40 flex-col items-center justify-center rounded-full bg-yellow-500">
-                <span className="text-4xl font-bold text-black">{currentPunchStrength}</span>
-                <span className="text-sm font-medium text-black">FORCE</span>
+            {/* Estado: Cuenta regresiva de 15 segundos */}
+            {gameState === "countdown" && (
+              <div className="flex flex-col items-center">
+                <h2 className="mb-6 text-2xl font-bold text-white">Punch Now!</h2>
+                <CountdownTimer
+                  seconds={15}
+                  onComplete={() => setGameState("punching")}
+                  size={220}
+                />
+                <p className="mt-6 text-center text-lg text-gray-300">
+                  Hit the sensor as hard as you can!
+                </p>
+                {/* Botón para simular el golpe (en producción, esto sería el sensor) */}
+                <button
+                  onClick={simulatePunch}
+                  className="mt-6 rounded-full bg-yellow-500 px-8 py-3 text-lg font-bold text-black hover:bg-yellow-400"
+                >
+                  Simular Golpe
+                </button>
               </div>
-              
-              <div className="mb-8 flex items-center">
-                <Trophy className="mr-2 h-6 w-6 text-yellow-400" />
-                <span className="text-lg text-white">
-                  {punchCount < 2 ? "You have more punches!" : "Final punch!"}
-                </span>
-              </div>
+            )}
 
-              <button
-                onClick={handleNextAction}
-                className="rounded-full bg-yellow-500 px-8 py-3 text-lg font-bold text-black hover:bg-yellow-400"
-              >
-                {punchCount >= 3 ? "See Leaderboard" : "Next Punch"}
-              </button>
-            </div>
-          )}
+            {/* Estado: Grabando el golpe */}
+            {gameState === "recording" && (
+              <div className="flex flex-col items-center">
+                <h2 className="mb-8 text-2xl font-bold text-white">Recording...</h2>
+                <div className="h-40 w-40 animate-pulse rounded-full bg-red-500 flex items-center justify-center">
+                  <span className="text-2xl font-bold text-white">Recording</span>
+                </div>
+                <p className="mt-8 text-center text-lg text-gray-300">
+                  Processing your punch...
+                </p>
+              </div>
+            )}
+
+            {/* Estado: Resultado */}
+            {gameState === "result" && currentPunchStrength && (
+              <div className="flex flex-col items-center">
+                <h2 className="mb-6 text-2xl font-bold text-white">Punch Result!</h2>
+                
+                <div className="mb-6 flex h-40 w-40 flex-col items-center justify-center rounded-full bg-yellow-500">
+                  <span className="text-4xl font-bold text-black">{currentPunchStrength}</span>
+                  <span className="text-sm font-medium text-black">FORCE</span>
+                </div>
+                
+                <div className="mb-8 flex items-center">
+                  <Trophy className="mr-2 h-6 w-6 text-yellow-400" />
+                  <span className="text-lg text-white">
+                    {currentPunchStrength >= PRIZE_THRESHOLD ? (
+                      <span className="text-yellow-400 font-bold">KNOCKOUT PUNCH! 🥊</span>
+                    ) : punchCount < 2 ? (
+                      "You have more punches!"
+                    ) : (
+                      "Final punch!"
+                    )}
+                  </span>
+                </div>
+
+                <button
+                  onClick={handleNextAction}
+                  className="rounded-full bg-yellow-500 px-8 py-3 text-lg font-bold text-black hover:bg-yellow-400"
+                >
+                  {punchCount >= 3 ? "See Results" : "Next Punch"}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+
+      {/* Pantalla de premio (se muestra cuando el usuario ha completado sus golpes y supera el umbral) */}
+      {showPrize && <PrizeScreen onExit={handlePrizeExit} />}
+    </>
   );
 } 
