@@ -1,9 +1,12 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
-// API Base URL para el servidor de autenticación
-const API_BASE_URL = 'http://localhost:5001/api';
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 interface User {
   id: string;
@@ -47,119 +50,85 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
 
-  // Marcar cuando el componente está montado en el cliente
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    // Set up Supabase auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
-  // Check if user is already logged in on initial load
-  useEffect(() => {
-    // Solo ejecutar esta lógica en el cliente y cuando el componente esté montado
-    if (isMounted) {
-      const storedToken = localStorage.getItem('auth_token');
-      if (storedToken) {
-        setToken(storedToken);
-        fetchCurrentUser(storedToken);
-      } else {
-        setIsLoading(false);
-      }
-    }
-  }, [isMounted]);
-
-  // Effect to set isAdmin whenever user changes
-  useEffect(() => {
-    if (user?.role === 'admin') {
-      setIsAdmin(true);
-    } else {
-      setIsAdmin(false);
-    }
-  }, [user]);
-
-  const fetchCurrentUser = async (authToken: string) => {
-    try {
-      // Token especial para admin
-      if (authToken === 'admin_token') {
-        const adminUser = {
-          id: "admin-001",
-          username: "Administrator",
-          email: "admin@punchmeter.com",
-          role: "admin"
-        };
-        setUser(adminUser);
-        setIsAdmin(true);
-        setIsLoading(false);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`
+        if (userError) {
+          console.error('Error fetching user data:', userError);
+          return;
         }
-      });
 
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-      } else {
-        // Token is invalid or expired
-        if (isMounted) {
-          localStorage.removeItem('auth_token');
+        if (userData) {
+          setUser({
+            id: userData.id,
+            username: userData.username,
+            email: userData.email,
+            role: userData.role
+          });
+          setToken(session.access_token);
+          setIsAdmin(userData.role === 'admin');
         }
+      } else {
+        setUser(null);
         setToken(null);
+        setIsAdmin(false);
       }
-    } catch (err) {
-      console.error('Error fetching current user:', err);
-    } finally {
       setIsLoading(false);
-    }
-  };
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
     
-    // Usuario admin predefinido
-    if (email === "admin@punchmeter.com" && password === "admin123") {
-      if (isMounted) {
-        localStorage.setItem('auth_token', 'admin_token');
-      }
-      setToken('admin_token');
-      const adminUser = {
-        id: "admin-001",
-        username: "Administrator",
-        email: "admin@punchmeter.com",
-        role: "admin"
-      };
-      setUser(adminUser);
-      setIsAdmin(true);
-      setIsLoading(false);
-      return true;
-    }
-    
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        if (isMounted) {
-          localStorage.setItem('auth_token', data.token);
-        }
-        setToken(data.token);
-        setUser(data.user);
-        return true;
-      } else {
-        setError(data.message || 'Login failed');
+      if (authError) {
+        setError(authError.message);
         return false;
       }
+
+      if (data.user) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        if (userError) {
+          setError(userError.message);
+          return false;
+        }
+
+        if (userData) {
+          setUser({
+            id: userData.id,
+            username: userData.username,
+            email: userData.email,
+            role: userData.role
+          });
+          setToken(data.session?.access_token || null);
+          setIsAdmin(userData.role === 'admin');
+          return true;
+        }
+      }
+      return false;
     } catch (err) {
       setError('An error occurred during login');
       console.error('Login error:', err);
@@ -174,27 +143,53 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ username, email, password })
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username
+          }
+        }
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        if (isMounted) {
-          localStorage.setItem('auth_token', data.token);
-        }
-        setToken(data.token);
-        setUser(data.user);
-        return true;
-      } else {
-        setError(data.message || 'Registration failed');
+      if (authError) {
+        setError(authError.message);
         return false;
       }
+
+      if (authData.user) {
+        // Create the user profile in the users table
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .insert([
+            {
+              id: authData.user.id,
+              username,
+              email,
+              role: 'user'
+            }
+          ])
+          .select()
+          .single();
+
+        if (userError) {
+          setError(userError.message);
+          return false;
+        }
+
+        if (userData) {
+          setUser({
+            id: userData.id,
+            username: userData.username,
+            email: userData.email,
+            role: userData.role
+          });
+          setToken(authData.session?.access_token || null);
+          return true;
+        }
+      }
+      return false;
     } catch (err) {
       setError('An error occurred during registration');
       console.error('Registration error:', err);
@@ -204,10 +199,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const logout = () => {
-    if (isMounted) {
-      localStorage.removeItem('auth_token');
-    }
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setToken(null);
     setIsAdmin(false);
